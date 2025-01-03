@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RegisterEntity } from './register.entity';
 import { CreateUserDto } from './dtos/create-user.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class RegisterService {
@@ -21,8 +22,24 @@ export class RegisterService {
             throw new ConflictException('이미 존재하는 ID입니다.');
         }
 
-        const register = this.registerRepository.create(createUserDto);
-        return await this.registerRepository.save(register);
+        // 비버깅을 위한 로그 추가
+        console.log('Original password:', createUserDto.pw);
+        const hashedPassword = await bcrypt.hash(createUserDto.pw, 10);
+        console.log('Hashed password:', hashedPassword);
+
+        // 해싱된 비밀번호로 사용자 생성
+        const register = this.registerRepository.create({
+            id: createUserDto.id,
+            pw: hashedPassword,  // password 필드를 pw로 매핑
+            name: createUserDto.name
+        });
+
+        // 저장 전 데이터 확인
+        console.log('Saving user with data:', register);
+        const savedUser = await this.registerRepository.save(register);
+        console.log('Saved user:', savedUser);
+
+        return savedUser;
     }
 
     async getAllUsers() {
