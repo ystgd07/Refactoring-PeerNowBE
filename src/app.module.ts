@@ -1,15 +1,13 @@
 import { Module } from '@nestjs/common';
-import { UserController } from './res/user/user.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { RegisterModule } from './res/register/register.module';
-import { RegisterEntity } from './res/register/register.entity';
-import { RegisterController } from './res/register/register.controller';
 import { LoginModule } from './res/login/login.module';
-import { LoginEntity } from './res/login/login.entity';
 import { AuthModule } from './res/auth/auth.module';
 import { User } from './res/user/entities/user.entity';
+import { LoginEntity } from './res/login/login.entity';
 import { TokenBlacklist } from './res/login/token-blacklist.entity';
-import { ConfigModule } from '@nestjs/config';
+import { UserModule } from './res/user/user.module';
 
 @Module({
   imports: [
@@ -24,10 +22,15 @@ import { ConfigModule } from '@nestjs/config';
       username: 'root',
       password: 'didtjdtn!2',
       database: 'prod',
-      entities: [RegisterEntity, LoginEntity, User, TokenBlacklist],
+      entities: [User, LoginEntity, TokenBlacklist],
       synchronize: true,
-    }), RegisterModule, LoginModule, AuthModule],
-  controllers: [UserController],
+    }),
+    RegisterModule,
+    LoginModule,
+    AuthModule,
+    UserModule,
+  ],
+  controllers: [],
   providers: [],
 })
 export class AppModule {}
