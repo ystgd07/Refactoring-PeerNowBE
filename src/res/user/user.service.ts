@@ -4,8 +4,10 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { S3ConfigService } from '../../config/s3.config';
-import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { S3Client } from '@aws-sdk/client-s3';
+import { UserWithImageUrl } from './interfaces/user-with-image.interface';
 
 @Injectable()
 export class UserService {
@@ -31,14 +33,11 @@ export class UserService {
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
-    
-    // 업데이트할 필드만 선택적으로 업데이트
     Object.assign(user, updateUserDto);
-    
     return this.userRepository.save(user);
   }
 
-  async updateImage(id: string, file: Express.Multer.File): Promise<User> {
+  async updateImage(id: string, file: Express.Multer.File): Promise<UserWithImageUrl> {
     const user = await this.findOne(id);
 
     if (user.image) {
@@ -67,12 +66,40 @@ export class UserService {
         })
       );
 
-      const imageUrl = `https://${this.bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: fileKey,
+      });
       
-      user.image = imageUrl;
-      return this.userRepository.save(user);
+      const signedUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 });
+      
+      user.image = fileKey;
+      const savedUser = await this.userRepository.save(user);
+      
+      return {
+        ...savedUser,
+        imageUrl: signedUrl
+      };
     } catch (error: any) {
       throw new Error(`이미지 업로드 실패: ${error.message}`);
+    }
+  }
+
+  async getImageUrl(imageKey: string): Promise<string> {
+    try {
+      const key = imageKey.startsWith('profiles/') ? imageKey : `profiles/${imageKey}`;
+      
+      console.log('Generating pre-signed URL for key:', key);
+      
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+      
+      return await getSignedUrl(this.s3Client, command, { expiresIn: 3600 });
+    } catch (error: any) {
+      console.error('이미지 URL 생성 중 에러:', error);
+      throw new Error(`이미지 URL 생성 실패: ${error.message}`);
     }
   }
 }

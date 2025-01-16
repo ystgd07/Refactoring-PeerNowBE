@@ -18,7 +18,7 @@ import { Express } from 'express';
 import { memoryStorage } from 'multer';
 
 @ApiTags('users')
-@Controller('user')
+@Controller('api/user')
 @UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -27,7 +27,22 @@ export class UserController {
   @ApiOperation({ summary: '사용자 정보 조회' })
   @ApiResponse({ status: 200, description: '사용자 정보 반환' })
   async getUserDetail(@Param('id') id: string) {
-    return this.userService.findOne(id);
+    const user = await this.userService.findOne(id);
+    if (user.image) {
+      const imageUrl = await this.userService.getImageUrl(user.image);
+      return { ...user, imageUrl };
+    }
+    return user;
+  }
+
+  @Get('image/:key(*)')
+  @ApiOperation({ summary: '이미지 URL 조회' })
+  @ApiResponse({ status: 200, description: '이미지 Pre-signed URL 반환' })
+  async getImageUrl(@Param('key') key: string) {
+    console.log('Received image key:', key);
+    return {
+      url: await this.userService.getImageUrl(key)
+    };
   }
 
   @Put('update/:id')

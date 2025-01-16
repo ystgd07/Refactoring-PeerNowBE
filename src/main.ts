@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 
 
@@ -27,6 +28,9 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
+
+  const configService = app.get(ConfigService);
+  console.log('S3 Bucket Name:', configService.get('AWS_S3_BUCKET_NAME'));
 
   await app.listen(8000);
 }

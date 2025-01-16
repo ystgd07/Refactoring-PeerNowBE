@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RegisterModule } from './res/register/register.module';
 import { LoginModule } from './res/login/login.module';
 import { AuthModule } from './res/auth/auth.module';
@@ -15,15 +15,31 @@ import { UserModule } from './res/user/user.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: 'didtjdtn!2',
-      database: 'prod',
-      entities: [User, LoginEntity, TokenBlacklist],
-      synchronize: true,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => {
+        const config = {
+          type: 'mysql' as const,
+          host: configService.get<string>('MYSQL_HOST') || 'localhost',
+          port: parseInt(configService.get<string>('MYSQL_PORT') || '3306'),
+          username: configService.get<string>('MYSQL_USERNAME') || 'root',
+          password: configService.get<string>('MYSQL_PASSWORD') || '',
+          database: configService.get<string>('MYSQL_DATABASE') || 'PEERNOW',
+          entities: [User, LoginEntity, TokenBlacklist],
+          synchronize: true,
+        };
+        
+        console.log('Database Config:', {
+          host: config.host,
+          port: config.port,
+          username: config.username,
+          password: config.password,
+          database: config.database
+        });
+        
+        return config;
+      },
+      inject: [ConfigService],
     }),
     RegisterModule,
     LoginModule,
