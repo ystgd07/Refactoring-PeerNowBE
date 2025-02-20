@@ -8,6 +8,8 @@ import { User } from './res/user/entities/user.entity';
 import { LoginEntity } from './res/login/login.entity';
 import { TokenBlacklist } from './res/login/token-blacklist.entity';
 import { UserModule } from './res/user/user.module';
+import { ProjectModule } from './res/project/project.module';
+import { Project } from './res/project/entities/project.entity';
 
 @Module({
   imports: [
@@ -17,34 +19,24 @@ import { UserModule } from './res/user/user.module';
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => {
-        const config = {
-          type: 'mysql' as const,
-          host: configService.get<string>('MYSQL_HOST') || 'localhost',
-          port: parseInt(configService.get<string>('MYSQL_PORT') || '3306'),
-          username: configService.get<string>('MYSQL_USERNAME') || 'root',
-          password: configService.get<string>('MYSQL_PASSWORD') || '',
-          database: configService.get<string>('MYSQL_DATABASE') || 'PEERNOW',
-          entities: [User, LoginEntity, TokenBlacklist],
-          synchronize: true,
-        };
-        
-        console.log('Database Config:', {
-          host: config.host,
-          port: config.port,
-          username: config.username,
-          password: config.password,
-          database: config.database
-        });
-        
-        return config;
-      },
+      useFactory: (configService: ConfigService) => ({
+        type: 'mysql' as const,
+        host: configService.get<string>('MYSQL_HOST'),
+        port: parseInt(configService.get<string>('MYSQL_PORT') || '3306'),
+        username: configService.get<string>('MYSQL_USERNAME'),
+        password: configService.get<string>('MYSQL_PASSWORD'),
+        database: configService.get<string>('MYSQL_DATABASE'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: true,
+        logging: true,
+      }),
       inject: [ConfigService],
     }),
     RegisterModule,
     LoginModule,
     AuthModule,
     UserModule,
+    ProjectModule,
   ],
   controllers: [],
   providers: [],
